@@ -8,9 +8,14 @@ object Main extends App {
 //  MyDeviceInfo.describeMidiSystem()
 
 //  MidiPlayground.basicSynthExample()
-  MidiPlayground.sequencerExample()
+//  MidiPlayground.sequencerExample()
 
-
+  //  MidiPlayground.testInstruments()
+//  MidiPlayground.testPercussion()
+//  MidiPlayground.testEffects()
+//  MidiPlayground.testTelephone()
+//  MidiPlayground.testChoir()
+  MidiPlayground.testWavey()
 }
 
 object MyDeviceInfo {
