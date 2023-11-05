@@ -11,6 +11,7 @@ import scala.io.Source
 import scala.util.Random
 
 object PianoGenerator {
+  val numKeys = 88
   val filepath = Paths.get("/Users/dwadeson/music_workspace/markov_piano/P.csv").toAbsolutePath
 
   def main(args: Array[String]): Unit = {
@@ -18,7 +19,7 @@ object PianoGenerator {
     if (!filepath.toFile.exists()) {
       try {
         filepath.toFile.createNewFile()
-        persistTransitionProbabilities(Array.ofDim(88, 88), filepath)
+        persistTransitionProbabilities(distanceP(), filepath)
       } catch {
         case t: Throwable =>
           println("Failed to create transition probabilities file")
@@ -32,8 +33,8 @@ object PianoGenerator {
     val middleC = 39
 
     val firstNote = middleC
-    val increment = (1.0 / 88.0) / 10.0
-    val pianoGenerator = new PianoGenerator(firstNote, increment, P)
+    val incrementFactor = 0.5
+    val pianoGenerator = new PianoGenerator(firstNote, incrementFactor, P)
     val pianoPlayer = new PianoPlayer(pianoGenerator, firstNote)
 
     playNotes(pianoPlayer.playedNotes())
@@ -113,30 +114,57 @@ object PianoGenerator {
       source.close()
       data
     } else {
-      Array.ofDim[Double](88, 88)
+      distanceP()
     }
   }
+
+  def uniformP(): Array[Array[Double]] = {
+    val P = emptyP()
+
+    val Pij: Double = 1.0 / 88.0
+
+    for (i <- 0 until numKeys; j <- 0 until numKeys) {
+      P(i)(j) = Pij
+    }
+
+    P
+  }
+
+  def distanceP(): Array[Array[Double]] = {
+    val P = emptyP()
+
+    // seed the array with weights based on distance from key
+    for (i <- 0 until numKeys; j <- 0 until numKeys) {
+      val distance: Double = 1.0 * math.abs(i - j)
+
+      val weight = 88.0 - (distance / 2)
+      P(i)(j) = weight
+    }
+
+    // normalize each row
+    for (i <- 0 until numKeys) {
+      val sum = P(i).sum
+      P(i) = P(i).map(v => v / sum)
+    }
+
+    P
+  }
+
+  def emptyP(): Array[Array[Double]] =
+    Array.ofDim[Double](88, 88)
 
 }
 
 
 class PianoGenerator(val firstNote: Int,
-                     val increment: Double,
+                     val incrementFactor: Double,
                      val P: Array[Array[Double]] = Array.ofDim[Double](88, 88)) {
-  val numRows = 88
-  val numCols = 88
-
-  val Pij: Double = 1.0 / 88.0
-
-  for (i <- 0 until numRows; j <- 0 until numCols) {
-    P(i)(j) = Pij
-  }
 
   def pickNextNote(lastNote: Int): Int = {
     val randomValue = Random.nextDouble()  // Generate a random number between 0 and 1
     var cumulativeSum = 0.0
 
-    for (j <- 0 until numCols) {
+    for (j <- 0 until PianoGenerator.numKeys) {
       cumulativeSum += P(lastNote)(j)
       if (cumulativeSum > randomValue) {
         return j
@@ -147,20 +175,14 @@ class PianoGenerator(val firstNote: Int,
   }
 
   def like(penultimateNote: Int, lastNote: Int): Unit = {
-    P(penultimateNote)(lastNote) += increment
+    P(penultimateNote)(lastNote) *= (1 + incrementFactor)
     val sum = P(penultimateNote).sum
 
     P(penultimateNote) = P(penultimateNote).map(p => p / sum)
   }
 
   def dislike(penultimateNote: Int, lastNote: Int): Unit = {
-    val decrease = if (P(penultimateNote)(lastNote) < increment) {
-      P(penultimateNote)(lastNote)
-    } else {
-      increment
-    }
-
-    P(penultimateNote)(lastNote) -= decrease
+    P(penultimateNote)(lastNote) *= (1 - incrementFactor)
     val sum = P(penultimateNote).sum
 
     P(penultimateNote) = P(penultimateNote).map(p => p / sum)
