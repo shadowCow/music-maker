@@ -251,11 +251,13 @@ class MarkovExponentialWithDecayNeighborsFeedback(factor: Double) extends Markov
     P(penultimateNote)(lastNote) *= (1 + f)
 
     if (lastNote > 0) {
-      P(penultimateNote)(lastNote - 1) *= (1 + f)
+      val f2 = (1 - P(penultimateNote)(lastNote - 1)) * factor
+      P(penultimateNote)(lastNote - 1) *= (1 + f2)
     }
 
     if (lastNote < P(penultimateNote).length - 1) {
-      P(penultimateNote)(lastNote + 1) *= (1 + f)
+      val f3 = (1 - P(penultimateNote)(lastNote + 1)) * factor
+      P(penultimateNote)(lastNote + 1) *= (1 + f3)
     }
 
     val sum = P(penultimateNote).sum
@@ -263,15 +265,17 @@ class MarkovExponentialWithDecayNeighborsFeedback(factor: Double) extends Markov
   }
 
   override def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
-    val f = (1 - P(penultimateNote)(lastNote)) * factor
+    val f = P(penultimateNote)(lastNote) * factor
     P(penultimateNote)(lastNote) *= (1 - f)
 
     if (lastNote > 0) {
-      P(penultimateNote)(lastNote - 1) *= (1 - f)
+      val f2 = P(penultimateNote)(lastNote - 1) * factor
+      P(penultimateNote)(lastNote - 1) *= (1 - f2)
     }
 
     if (lastNote < P(penultimateNote).length - 1) {
-      P(penultimateNote)(lastNote + 1) *= (1 - f)
+      val f3 = P(penultimateNote)(lastNote + 1) * factor
+      P(penultimateNote)(lastNote + 1) *= (1 - f3)
     }
 
     val sum = P(penultimateNote).sum
