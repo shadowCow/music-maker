@@ -33,8 +33,8 @@ object PianoGenerator {
     val middleC = 39
 
     val firstNote = middleC
-    val incrementFactor = 0.5
-    val pianoGenerator = new PianoGenerator(firstNote, incrementFactor, P)
+    val feedback = new MarkovExponentialWithDecayNeighborsFeedback(0.5)
+    val pianoGenerator = new PianoGenerator(firstNote, feedback, P)
     val pianoPlayer = new PianoPlayer(pianoGenerator, firstNote)
 
     playNotes(pianoPlayer.playedNotes())
@@ -157,7 +157,7 @@ object PianoGenerator {
 
 
 class PianoGenerator(val firstNote: Int,
-                     val incrementFactor: Double,
+                     val feedback: Markov1Feedback,
                      val P: Array[Array[Double]] = Array.ofDim[Double](88, 88)) {
 
   def pickNextNote(lastNote: Int): Int = {
@@ -175,17 +175,11 @@ class PianoGenerator(val firstNote: Int,
   }
 
   def like(penultimateNote: Int, lastNote: Int): Unit = {
-    P(penultimateNote)(lastNote) *= (1 + incrementFactor)
-    val sum = P(penultimateNote).sum
-
-    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+    feedback.like(P, penultimateNote, lastNote)
   }
 
   def dislike(penultimateNote: Int, lastNote: Int): Unit = {
-    P(penultimateNote)(lastNote) *= (1 - incrementFactor)
-    val sum = P(penultimateNote).sum
-
-    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+    feedback.dislike(P, penultimateNote, lastNote)
   }
 }
 
@@ -207,4 +201,129 @@ class PianoPlayer(val generator: PianoGenerator, val firstNote: Int) {
 
   def last(): Int = played.last
   def penultimate(): Int = played(played.length - 2)
+}
+
+trait Player {
+  def playNextNote(): Unit
+  def playedNotes(): Seq[Int]
+  def resetComposition(): Unit
+  def like(): Unit
+  def dislike(): Unit
+}
+
+class Markov1Player(val firstNote: Int,
+                    val feedback: Markov1Feedback,
+                    val P: Array[Array[Double]]) extends Player {
+  private val played = mutable.ListBuffer[Int]()
+  resetComposition()
+
+  override def playNextNote(): Unit = {
+    played += pickNextNote(played.last)
+  }
+
+  private def pickNextNote(lastNote: Int): Int = {
+    val randomValue = Random.nextDouble()  // Generate a random number between 0 and 1
+    var cumulativeSum = 0.0
+
+    for (j <- 0 until PianoGenerator.numKeys) {
+      cumulativeSum += P(lastNote)(j)
+      if (cumulativeSum > randomValue) {
+        return j
+      }
+    }
+
+    87
+  }
+
+  override def playedNotes(): Seq[Int] = played.toSeq
+
+  override def resetComposition(): Unit = {
+    played.clear()
+    played += firstNote
+    played += pickNextNote(firstNote)
+  }
+
+  override def like(): Unit = {
+    feedback.like(P, penultimate(), last())
+  }
+
+  override def dislike(): Unit = {
+    feedback.dislike(P, penultimate(), last())
+  }
+
+  private def last(): Int = played.last
+  private def penultimate(): Int = played(played.length - 2)
+}
+
+trait Markov1Feedback {
+  def like(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit
+  def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit
+}
+
+class MarkovExponentialFeedback(factor: Double) extends Markov1Feedback {
+  override def like(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    P(penultimateNote)(lastNote) *= (1 + factor)
+    val sum = P(penultimateNote).sum
+
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
+
+  override def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    P(penultimateNote)(lastNote) *= (1 - factor)
+    val sum = P(penultimateNote).sum
+
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
+}
+
+class MarkovExponentialWithDecayFeedback(factor: Double) extends Markov1Feedback {
+  override def like(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    val f = (1 - P(penultimateNote)(lastNote)) * factor
+    P(penultimateNote)(lastNote) *= (1 + f)
+
+    val sum = P(penultimateNote).sum
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
+
+  override def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    val f = (1 - P(penultimateNote)(lastNote)) * factor
+    P(penultimateNote)(lastNote) *= (1 - f)
+
+    val sum = P(penultimateNote).sum
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
+}
+
+class MarkovExponentialWithDecayNeighborsFeedback(factor: Double) extends Markov1Feedback {
+  override def like(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    val f = (1 - P(penultimateNote)(lastNote)) * factor
+    P(penultimateNote)(lastNote) *= (1 + f)
+
+    if (lastNote > 0) {
+      P(penultimateNote)(lastNote - 1) *= (1 + f)
+    }
+
+    if (lastNote < P(penultimateNote).length - 1) {
+      P(penultimateNote)(lastNote + 1) *= (1 + f)
+    }
+
+    val sum = P(penultimateNote).sum
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
+
+  override def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit = {
+    val f = (1 - P(penultimateNote)(lastNote)) * factor
+    P(penultimateNote)(lastNote) *= (1 - f)
+
+    if (lastNote > 0) {
+      P(penultimateNote)(lastNote - 1) *= (1 - f)
+    }
+
+    if (lastNote < P(penultimateNote).length - 1) {
+      P(penultimateNote)(lastNote + 1) *= (1 - f)
+    }
+
+    val sum = P(penultimateNote).sum
+    P(penultimateNote) = P(penultimateNote).map(p => p / sum)
+  }
 }
