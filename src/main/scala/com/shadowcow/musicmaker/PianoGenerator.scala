@@ -34,8 +34,7 @@ object PianoGenerator {
 
     val firstNote = middleC
     val feedback = new MarkovExponentialWithDecayNeighborsFeedback(0.5)
-    val pianoGenerator = new PianoGenerator(firstNote, feedback, P)
-    val pianoPlayer = new PianoPlayer(pianoGenerator, firstNote)
+    val pianoPlayer = new Markov1Player(firstNote, feedback, P)
 
     playNotes(pianoPlayer.playedNotes())
 
@@ -47,14 +46,14 @@ object PianoGenerator {
         case "R" => // Process replay option
           playNotes(pianoPlayer.playedNotes())
         case "L" => // Process like option
-          pianoGenerator.like(pianoPlayer.penultimate(), pianoPlayer.last())
-          persistTransitionProbabilities(pianoGenerator.P, filepath)
+          pianoPlayer.like()
+          persistTransitionProbabilities(pianoPlayer.P, filepath)
           pianoPlayer.playNextNote()
           playNotes(pianoPlayer.playedNotes())
         case "D" => // Process dislike option
-          pianoGenerator.dislike(pianoPlayer.penultimate(), pianoPlayer.last())
-          persistTransitionProbabilities(pianoGenerator.P, filepath)
-          pianoPlayer.reset()
+          pianoPlayer.dislike()
+          persistTransitionProbabilities(pianoPlayer.P, filepath)
+          pianoPlayer.resetComposition()
           playNotes(pianoPlayer.playedNotes())
         case "N" => // Process neutral option
           pianoPlayer.playNextNote()
@@ -153,54 +152,6 @@ object PianoGenerator {
   def emptyP(): Array[Array[Double]] =
     Array.ofDim[Double](88, 88)
 
-}
-
-
-class PianoGenerator(val firstNote: Int,
-                     val feedback: Markov1Feedback,
-                     val P: Array[Array[Double]] = Array.ofDim[Double](88, 88)) {
-
-  def pickNextNote(lastNote: Int): Int = {
-    val randomValue = Random.nextDouble()  // Generate a random number between 0 and 1
-    var cumulativeSum = 0.0
-
-    for (j <- 0 until PianoGenerator.numKeys) {
-      cumulativeSum += P(lastNote)(j)
-      if (cumulativeSum > randomValue) {
-        return j
-      }
-    }
-
-    87
-  }
-
-  def like(penultimateNote: Int, lastNote: Int): Unit = {
-    feedback.like(P, penultimateNote, lastNote)
-  }
-
-  def dislike(penultimateNote: Int, lastNote: Int): Unit = {
-    feedback.dislike(P, penultimateNote, lastNote)
-  }
-}
-
-class PianoPlayer(val generator: PianoGenerator, val firstNote: Int) {
-  private val played = mutable.ListBuffer[Int]()
-  reset()
-
-  def playNextNote(): Unit = {
-    played += generator.pickNextNote(played.last)
-  }
-
-  def playedNotes(): Seq[Int] = played.toSeq
-
-  def reset(): Unit = {
-    played.clear()
-    played += firstNote
-    played += generator.pickNextNote(firstNote)
-  }
-
-  def last(): Int = played.last
-  def penultimate(): Int = played(played.length - 2)
 }
 
 trait Player {
