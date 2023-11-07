@@ -86,6 +86,60 @@ object MidiPlayground {
     synth.close()
   }
 
+  def testAllPianoNotes(instrument: Int, display: Boolean = true): Unit = {
+    if (display) {
+      testNotesWithDisplay(instrument, (0 until 88).toArray)
+    } else {
+      testNotes(instrument, (0 until 88).toArray)
+    }
+  }
+
+  def testNotesWithDisplay(instrument: Int, notes: Array[Int]): Unit = {
+    require(instrument > -1 && instrument < 129, s"Instrument must be 0 <= i <= 128, got $instrument")
+    val startTick = 10
+    val tickInterval = 5
+
+    notes.foreach { note =>
+      var lastTick = startTick
+
+      val sequence = new Sequence(Sequence.PPQ, 10)
+
+      val track1 = sequence.createTrack()
+      // set instrument
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.PROGRAM_CHANGE, 0, instrument, 0), 0))
+
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, note + 21, 93), lastTick))
+      lastTick += tickInterval
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, note + 21, 93), lastTick))
+
+      println(s"playing note: $note")
+      playSequence(sequence)
+    }
+  }
+
+  def testNotes(instrument: Int, notes: Array[Int]): Unit = {
+    require(instrument > -1 && instrument < 129, s"Instrument must be 0 <= i <= 128, got $instrument")
+    val startTick = 10
+    val tickInterval = 5
+
+    var lastTick = startTick
+
+    val sequence = new Sequence(Sequence.PPQ, 10)
+
+    val track1 = sequence.createTrack()
+    // set instrument
+    track1.add(new MidiEvent(new ShortMessage(ShortMessage.PROGRAM_CHANGE, 0, instrument, 0), 0))
+
+    notes.foreach { note =>
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, note + 21, 93), lastTick))
+      lastTick += tickInterval
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, note + 21, 93), lastTick))
+      lastTick += tickInterval
+    }
+
+    playSequence(sequence)
+  }
+
   def testInstruments(): Unit = {
     Instruments.ALL_INSTRUMENTS.map(i => createSampleSequence(i))
       .foreach(playSequence)

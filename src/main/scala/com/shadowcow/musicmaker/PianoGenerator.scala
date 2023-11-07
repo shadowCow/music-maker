@@ -74,7 +74,7 @@ object PianoGenerator {
   }
 
   def notesToMidiSequence(notes: Seq[Int]): Sequence = {
-    val instrument = Instruments.PIANO
+    val instrument = Instruments.ELECTRIC_PIANO_1
     val startTick = 10
     val tickInterval = 5
     val sequence = new Sequence(Sequence.PPQ, 10)
@@ -281,4 +281,34 @@ class MarkovExponentialWithDecayNeighborsFeedback(factor: Double) extends Markov
     val sum = P(penultimateNote).sum
     P(penultimateNote) = P(penultimateNote).map(p => p / sum)
   }
+}
+
+/**
+ * It seems like we could work with just the range 19 to 59
+ * to produce useful music.
+ *
+ * We could perhaps also shift which notes we are working with
+ * based on the ambiance we want. If we want dark and foreboding,
+ * we could shift the range lower.
+ *
+ * If we want... whatever is at the high range, we could
+ * shift that way.
+ *
+ *
+ * @param firstNote
+ * @param lastNote
+ */
+class Keyboard(val firstNote: Int, val lastNote: Int) {
+  require(firstNote > -1 && firstNote < 89, s"firstNote must be in range [0, 87], got $firstNote")
+  require(lastNote > -1 && lastNote < 89, s"lastNote must be in range [0, 87], got $lastNote")
+  require(firstNote <= lastNote, s"firstNote must be < lastNote, got $firstNote, $lastNote")
+
+  def numKeys(): Int = 1 + lastNote - firstNote
+
+  def toMidi(note: Int): Int = note + 21
+}
+
+object Keyboard {
+  val Full = new Keyboard(0, 87)
+  val Small = new Keyboard(19, 59)
 }

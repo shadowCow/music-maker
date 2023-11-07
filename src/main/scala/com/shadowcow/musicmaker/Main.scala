@@ -15,7 +15,10 @@ object Main extends App {
 //  MidiPlayground.testEffects()
 //  MidiPlayground.testTelephone()
 //  MidiPlayground.testChoir()
-  MidiPlayground.testWavey()
+//  MidiPlayground.testWavey()
+
+//  MidiPlayground.testAllPianoNotes(Instruments.ACOUSTIC_GRAND_PIANO)
+  MidiPlayground.testAllPianoNotes(Instruments.HONKY_TONK_PIANO, false)
 }
 
 object MyDeviceInfo {
