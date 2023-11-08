@@ -11,7 +11,7 @@ import scala.io.Source
 import scala.util.Random
 
 object PianoGenerator {
-  val numKeys = 88
+  val keyboard = Keyboard.Full
   val filepath = Paths.get("/Users/dwadeson/music_workspace/markov_piano/P.csv").toAbsolutePath
 
   def main(args: Array[String]): Unit = {
@@ -19,7 +19,7 @@ object PianoGenerator {
     if (!filepath.toFile.exists()) {
       try {
         filepath.toFile.createNewFile()
-        persistTransitionProbabilities(distanceP(), filepath)
+        persistTransitionProbabilities(distanceP(keyboard), filepath)
       } catch {
         case t: Throwable =>
           println("Failed to create transition probabilities file")
@@ -28,15 +28,15 @@ object PianoGenerator {
       }
     }
 
-    val P = loadTransitionProbabilities(filepath)
+    val P = loadTransitionProbabilities(filepath, keyboard)
 
     val middleC = 39
 
     val firstNote = middleC
     val feedback = new MarkovExponentialWithDecayNeighborsFeedback(0.5)
-    val pianoPlayer = new Markov1Player(firstNote, feedback, P)
+    val pianoPlayer = new Markov1Player(firstNote, keyboard, feedback, P)
 
-    playNotes(pianoPlayer.playedNotes())
+    playNotes(pianoPlayer.playedNotes(), keyboard)
 
     while (true) {
       print("Enter a command (replay (R), like (L), dislike (D), neutral (N)) or 'exit' to quit: ")
@@ -44,20 +44,20 @@ object PianoGenerator {
 
       input match {
         case "R" => // Process replay option
-          playNotes(pianoPlayer.playedNotes())
+          playNotes(pianoPlayer.playedNotes(), keyboard)
         case "L" => // Process like option
           pianoPlayer.like()
           persistTransitionProbabilities(pianoPlayer.P, filepath)
           pianoPlayer.playNextNote()
-          playNotes(pianoPlayer.playedNotes())
+          playNotes(pianoPlayer.playedNotes(), keyboard)
         case "D" => // Process dislike option
           pianoPlayer.dislike()
           persistTransitionProbabilities(pianoPlayer.P, filepath)
           pianoPlayer.resetComposition()
-          playNotes(pianoPlayer.playedNotes())
+          playNotes(pianoPlayer.playedNotes(), keyboard)
         case "N" => // Process neutral option
           pianoPlayer.playNextNote()
-          playNotes(pianoPlayer.playedNotes())
+          playNotes(pianoPlayer.playedNotes(), keyboard)
         case "exit" =>
           println("Exiting the Piano Generator.")
           sys.exit(0)
@@ -67,13 +67,13 @@ object PianoGenerator {
     }
   }
 
-  def playNotes(notes: Seq[Int]): Unit = {
+  def playNotes(notes: Seq[Int], keyboard: Keyboard): Unit = {
     println(s"Notes: $notes")
 
-    MidiPlayground.playSequence(notesToMidiSequence(notes))
+    MidiPlayground.playSequence(notesToMidiSequence(notes, keyboard))
   }
 
-  def notesToMidiSequence(notes: Seq[Int]): Sequence = {
+  def notesToMidiSequence(notes: Seq[Int], keyboard: Keyboard): Sequence = {
     val instrument = Instruments.ELECTRIC_PIANO_1
     val startTick = 10
     val tickInterval = 5
@@ -85,9 +85,9 @@ object PianoGenerator {
 
     var lastTick = startTick
     notes.foreach { note =>
-      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, note + 21, 93), lastTick))
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, 0, keyboard.toMidi(note), 93), lastTick))
       lastTick += tickInterval
-      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, note + 21, 93), lastTick))
+      track1.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, 0, keyboard.toMidi(note), 93), lastTick))
       lastTick += tickInterval
     }
 
@@ -105,7 +105,7 @@ object PianoGenerator {
     }
   }
 
-  def loadTransitionProbabilities(filepath: Path): Array[Array[Double]] = {
+  def loadTransitionProbabilities(filepath: Path, keyboard: Keyboard): Array[Array[Double]] = {
     if (filepath.toFile.exists()) {
       println(s"Reading transition probabilities from $filepath")
       val source = Source.fromFile(filepath.toFile)
@@ -113,27 +113,27 @@ object PianoGenerator {
       source.close()
       data
     } else {
-      distanceP()
+      distanceP(keyboard)
     }
   }
 
-  def uniformP(): Array[Array[Double]] = {
-    val P = emptyP()
+  def uniformP(keyboard: Keyboard): Array[Array[Double]] = {
+    val P = emptyP1(keyboard)
 
     val Pij: Double = 1.0 / 88.0
 
-    for (i <- 0 until numKeys; j <- 0 until numKeys) {
+    for (i <- 0 until keyboard.numKeys(); j <- 0 until keyboard.numKeys()) {
       P(i)(j) = Pij
     }
 
     P
   }
 
-  def distanceP(): Array[Array[Double]] = {
-    val P = emptyP()
+  def distanceP(keyboard: Keyboard): Array[Array[Double]] = {
+    val P = emptyP1(keyboard)
 
     // seed the array with weights based on distance from key
-    for (i <- 0 until numKeys; j <- 0 until numKeys) {
+    for (i <- 0 until keyboard.numKeys(); j <- 0 until keyboard.numKeys()) {
       val distance: Double = 1.0 * math.abs(i - j)
 
       val weight = 88.0 - (distance / 2)
@@ -141,7 +141,7 @@ object PianoGenerator {
     }
 
     // normalize each row
-    for (i <- 0 until numKeys) {
+    for (i <- 0 until keyboard.numKeys()) {
       val sum = P(i).sum
       P(i) = P(i).map(v => v / sum)
     }
@@ -149,8 +149,16 @@ object PianoGenerator {
     P
   }
 
-  def emptyP(): Array[Array[Double]] =
-    Array.ofDim[Double](88, 88)
+  def emptyP1(keyboard: Keyboard): Array[Array[Double]] =
+    Array.ofDim[Double](keyboard.numKeys(), keyboard.numKeys())
+
+  def emptyP2(keyboard: Keyboard): Array[Array[Double]] = {
+    val numRows = keyboard.numKeys() * keyboard.numKeys()
+    val numCols = keyboard.numKeys()
+
+    Array.ofDim[Double](numRows, numCols)
+  }
+
 
 }
 
@@ -163,6 +171,7 @@ trait Player {
 }
 
 class Markov1Player(val firstNote: Int,
+                    val keyboard: Keyboard,
                     val feedback: Markov1Feedback,
                     val P: Array[Array[Double]]) extends Player {
   private val played = mutable.ListBuffer[Int]()
@@ -176,14 +185,14 @@ class Markov1Player(val firstNote: Int,
     val randomValue = Random.nextDouble()  // Generate a random number between 0 and 1
     var cumulativeSum = 0.0
 
-    for (j <- 0 until PianoGenerator.numKeys) {
+    for (j <- 0 until keyboard.numKeys) {
       cumulativeSum += P(lastNote)(j)
       if (cumulativeSum > randomValue) {
         return j
       }
     }
 
-    87
+    keyboard.numKeys() - 1
   }
 
   override def playedNotes(): Seq[Int] = played.toSeq
@@ -209,6 +218,24 @@ class Markov1Player(val firstNote: Int,
 trait Markov1Feedback {
   def like(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit
   def dislike(P: Array[Array[Double]], penultimateNote: Int, lastNote: Int): Unit
+}
+
+object Markov1Feedback {
+  def likeComposition(feedback: Markov1Feedback, P: Array[Array[Double]], composition: Array[Int]): Unit = {
+    require(composition.length > 1, s"composition.length must be >= 2")
+
+    composition.sliding(2).foreach { pair =>
+      feedback.like(P, pair(0), pair(1))
+    }
+  }
+
+  def dislikeComposition(feedback: Markov1Feedback, P: Array[Array[Double]], composition: Array[Int]): Unit = {
+    require(composition.length > 1, s"composition.length must be >= 2")
+
+    composition.sliding(2).foreach { pair =>
+      feedback.dislike(P, pair(0), pair(1))
+    }
+  }
 }
 
 class MarkovExponentialFeedback(factor: Double) extends Markov1Feedback {
