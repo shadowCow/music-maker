@@ -1,6 +1,6 @@
 package com.shadowcow.musicmaker.piano.domain.model
 
-import com.shadowcow.musicmaker.piano.NotePicker
+import com.shadowcow.musicmaker.piano.domain.ports.NotePicker
 
 import scala.collection.mutable
 

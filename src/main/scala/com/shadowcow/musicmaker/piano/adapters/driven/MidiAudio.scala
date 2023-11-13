@@ -6,6 +6,7 @@ import javax.sound.midi.{MidiEvent, Sequence, ShortMessage}
 
 class MidiAudio extends Audio {
   override def playPianoNotes(notes: Seq[Int]): Unit = {
+    println(s"playing $notes")
     MidiPlayground.playSequence(notesToMidiSequence(notes))
   }
 
