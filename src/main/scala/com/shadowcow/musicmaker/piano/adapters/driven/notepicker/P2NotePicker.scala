@@ -21,7 +21,6 @@ class P2NotePicker(val keyboard: Keyboard,
     } else {
       val penultimate = keyboard.toIndex(played(played.size - 2))
 
-
       val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.toIndex(played.last)
       val p2Row = p2(p2RowIndex)
       val combined = p1Row.zip(p2Row).map {

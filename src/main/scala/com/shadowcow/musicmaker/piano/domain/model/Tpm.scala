@@ -30,6 +30,18 @@ object Tpm {
     P
   }
 
+  def uniformP3(keyboard: Keyboard): Array[Array[Double]] = {
+    val P = emptyP3(keyboard)
+
+    val Pij: Double = 1.0 / (1.0*keyboard.numKeys())
+
+    for (i <- P.indices; j <- 0 until keyboard.numKeys()) {
+      P(i)(j) = Pij
+    }
+
+    P
+  }
+
   def distanceP1(keyboard: Keyboard): Array[Array[Double]] = {
     val P = emptyP1(keyboard)
 
@@ -55,6 +67,13 @@ object Tpm {
 
   def emptyP2(keyboard: Keyboard): Array[Array[Double]] = {
     val numRows = keyboard.numKeys() * keyboard.numKeys()
+    val numCols = keyboard.numKeys()
+
+    Array.ofDim[Double](numRows, numCols)
+  }
+
+  def emptyP3(keyboard: Keyboard): Array[Array[Double]] = {
+    val numRows = keyboard.numKeys() * keyboard.numKeys() * keyboard.numKeys()
     val numCols = keyboard.numKeys()
 
     Array.ofDim[Double](numRows, numCols)
