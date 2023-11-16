@@ -1,5 +1,7 @@
 package com.shadowcow.musicmaker.piano.domain.model
 
+import scala.util.Random
+
 /**
  *
  *
@@ -19,6 +21,12 @@ class Keyboard(val firstNote: Int, val lastNote: Int) {
     val note = index + firstNote
     require(note >= firstNote && note <= lastNote, s"note must be in range [$firstNote, $lastNote], got $note")
     note
+  }
+
+  def randomNote(): Int = {
+    val randomKeyIndex = Random.nextInt(numKeys())
+
+    fromIndex(randomKeyIndex)
   }
 }
 

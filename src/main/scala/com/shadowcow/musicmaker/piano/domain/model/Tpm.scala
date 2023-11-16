@@ -1,5 +1,7 @@
 package com.shadowcow.musicmaker.piano.domain.model
 
+import scala.util.Random
+
 /**
  * Transition Probability Matrix utilities
  */
@@ -7,9 +9,21 @@ object Tpm {
   def uniformP1(keyboard: Keyboard): Array[Array[Double]] = {
     val P = emptyP1(keyboard)
 
-    val Pij: Double = 1.0 / 88.0
+    val Pij: Double = 1.0 / (1.0*keyboard.numKeys())
 
     for (i <- 0 until keyboard.numKeys(); j <- 0 until keyboard.numKeys()) {
+      P(i)(j) = Pij
+    }
+
+    P
+  }
+
+  def uniformP2(keyboard: Keyboard): Array[Array[Double]] = {
+    val P = emptyP2(keyboard)
+
+    val Pij: Double = 1.0 / (1.0*keyboard.numKeys())
+
+    for (i <- P.indices; j <- 0 until keyboard.numKeys()) {
       P(i)(j) = Pij
     }
 
@@ -44,5 +58,19 @@ object Tpm {
     val numCols = keyboard.numKeys()
 
     Array.ofDim[Double](numRows, numCols)
+  }
+
+  def getRandom(P: Array[Double]): Int = {
+    val randomValue = Random.nextDouble()  // Generate a random number between 0 and 1
+    var cumulativeSum = 0.0
+
+    for (j <- P.indices) {
+      cumulativeSum += P(j)
+      if (cumulativeSum > randomValue) {
+        return j
+      }
+    }
+
+    P.length - 1
   }
 }
