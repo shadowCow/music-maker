@@ -41,7 +41,7 @@ class P2NotePicker(val keyboard: Keyboard,
     }
   }
 
-  override def like(played: Seq[Int]): Unit = {
+  override def likeLastNote(played: Seq[Int]): Unit = {
     val last = keyboard.toIndex(played.last)
     val penultimate = keyboard.toIndex(played(played.size - 2))
 
@@ -61,7 +61,7 @@ class P2NotePicker(val keyboard: Keyboard,
     persistence.write(p1, p2)
   }
 
-  override def dislike(played: Seq[Int]): Unit = {
+  override def dislikeLastNote(played: Seq[Int]): Unit = {
     val last = keyboard.toIndex(played.last)
     val penultimate = keyboard.toIndex(played(played.size - 2))
 

@@ -20,10 +20,10 @@ class Player(val notePicker: NotePicker) {
   }
 
   def like(): Unit = {
-    notePicker.like(played.toSeq)
+    notePicker.likeLastNote(played.toSeq)
   }
 
   def dislike(): Unit = {
-    notePicker.dislike(played.toSeq)
+    notePicker.dislikeLastNote(played.toSeq)
   }
 }

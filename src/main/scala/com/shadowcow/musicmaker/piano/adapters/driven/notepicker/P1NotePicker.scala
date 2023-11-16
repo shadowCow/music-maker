@@ -27,12 +27,12 @@ class P1NotePicker(val keyboard: Keyboard,
     Tpm.getRandom(row)
   }
 
-  override def like(played: Seq[Int]): Unit = {
+  override def likeLastNote(played: Seq[Int]): Unit = {
     feedback.like(P, penultimate(played), last(played))
     persistence.write(P)
   }
 
-  override def dislike(played: Seq[Int]): Unit = {
+  override def dislikeLastNote(played: Seq[Int]): Unit = {
     feedback.dislike(P, penultimate(played), last(played))
     persistence.write(P)
   }
