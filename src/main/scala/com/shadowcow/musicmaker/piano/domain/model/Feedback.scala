@@ -16,4 +16,22 @@ object Feedback {
     val sum = P(row).sum
     P(row) = P(row).map(p => p / sum)
   }
+
+  def likeComposition(P: Array[Array[Double]],
+                      rowColumnPairs: Seq[(Int, Int)],
+                      f: Double => Double): Unit = {
+    rowColumnPairs.foreach {
+      case (row, column) =>
+        likeOne(P, row, column, f)
+    }
+  }
+
+  def dislikeComposition(P: Array[Array[Double]],
+                         rowColumnPairs: Seq[(Int, Int)],
+                         f: Double => Double): Unit = {
+    rowColumnPairs.foreach {
+      case (row, column) =>
+        dislikeOne(P, row, column, f)
+    }
+  }
 }

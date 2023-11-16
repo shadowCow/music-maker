@@ -14,8 +14,6 @@ object PianoGenerator {
   def main(args: Array[String]): Unit = {
     println("Welcome to Piano Generator")
 
-    val middleC = 39
-
 //    val filepath = Paths.get("/Users/dwadeson/music_workspace/markov_piano/P.csv").toAbsolutePath
 //    val feedback = new MarkovExponentialWithDecayNeighborsFeedback(0.5)
 //    val persistence = new P1CsvPersistence(keyboard, filepath)
@@ -29,11 +27,7 @@ object PianoGenerator {
     val persistence = new P3CsvPersistence(keyboard, filepath)
     val notePicker = new P3NotePicker(keyboard, persistence)
 
-    val firstNote = keyboard.randomNote()
-    val secondNote = notePicker.pickNextNote(Seq(firstNote))
-    val thirdNote = notePicker.pickNextNote(Seq(firstNote, secondNote))
-
-    val pianoPlayer = new Player(Seq(firstNote, secondNote, thirdNote), notePicker)
+    val pianoPlayer = new Player(notePicker)
     val audio = new MidiAudio()
 
     val learningLoop = new LearningLoop(keyboard, pianoPlayer, audio)

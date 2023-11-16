@@ -31,6 +31,8 @@ class Keyboard(val firstNote: Int, val lastNote: Int) {
 }
 
 object Keyboard {
+  val middleC = 39
+
   val Full = new Keyboard(0, 87)
 
   /**

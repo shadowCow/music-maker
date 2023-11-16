@@ -4,8 +4,7 @@ import com.shadowcow.musicmaker.piano.domain.ports.NotePicker
 
 import scala.collection.mutable
 
-class Player(val seedNotes: Seq[Int],
-             val notePicker: NotePicker) {
+class Player(val notePicker: NotePicker) {
   private val played = mutable.ListBuffer[Int]()
   resetComposition()
 
@@ -17,8 +16,7 @@ class Player(val seedNotes: Seq[Int],
 
   def resetComposition(): Unit = {
     played.clear()
-    seedNotes.foreach(n => played += n)
-    played += notePicker.pickNextNote(played.toSeq)
+    notePicker.seedNotes().foreach(n => played += n)
   }
 
   def like(): Unit = {

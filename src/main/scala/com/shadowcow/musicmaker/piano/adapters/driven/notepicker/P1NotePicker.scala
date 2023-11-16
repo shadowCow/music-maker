@@ -7,11 +7,20 @@ import com.shadowcow.musicmaker.piano.domain.model.{Keyboard, Tpm}
 import com.shadowcow.musicmaker.piano.domain.ports.NotePicker
 
 import scala.io.Source
+import scala.util.Random
 
 class P1NotePicker(val keyboard: Keyboard,
                    val feedback: Markov1Feedback,
                    val persistence: P1CsvPersistence) extends NotePicker {
   val P: Array[Array[Double]] = persistence.read()
+
+  override def seedNotes(): Seq[Int] = {
+    val randomColumn = Random.nextInt(keyboard.numKeys())
+    val firstNote = keyboard.fromIndex(randomColumn)
+    val secondNote = pickNextNote(Seq(firstNote))
+
+    Seq(firstNote, secondNote)
+  }
 
   override def pickNextNote(played: Seq[Int]): Int = {
     val row = P(keyboard.toIndex(played.last))
