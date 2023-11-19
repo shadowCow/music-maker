@@ -18,7 +18,7 @@ class P3NotePicker(val keyboard: Keyboard,
 
   override def seedNotes(): Seq[Int] = {
     val randomColumn = Random.nextInt(keyboard.numKeys())
-    val firstNote = keyboard.fromIndex(randomColumn)
+    val firstNote = keyboard.indexToNote(randomColumn)
     val secondNote = pickNextNote(Seq(firstNote))
     val thirdNote = pickNextNote(Seq(firstNote, secondNote))
     val fourthNote = pickNextNote(Seq(firstNote, secondNote, thirdNote))
@@ -27,24 +27,24 @@ class P3NotePicker(val keyboard: Keyboard,
   }
 
   override def pickNextNote(played: Seq[Int]): Int = {
-    val p1Row = p1(keyboard.toIndex(played.last))
+    val p1Row = p1(keyboard.noteToIndex(played.last))
     if (played.size < 2) {
-      keyboard.fromIndex(Tpm.getRandom(p1Row))
+      keyboard.indexToNote(Tpm.getRandom(p1Row))
     } else if (played.size < 3) {
-      val penultimate = keyboard.toIndex(played(played.size - 2))
+      val penultimate = keyboard.noteToIndex(played(played.size - 2))
 
-      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.toIndex(played.last)
+      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.noteToIndex(played.last)
       val p2Row = p2(p2RowIndex)
       val combined = p1Row.zip(p2Row).map {
         case (a,b) => p1Weight * a + (1 - p1Weight) * b
       }
 
-      keyboard.fromIndex(Tpm.getRandom(combined))
+      keyboard.indexToNote(Tpm.getRandom(combined))
     } else {
-      val penultimate = keyboard.toIndex(played(played.size - 2))
-      val third = keyboard.toIndex(played(played.size - 3))
+      val penultimate = keyboard.noteToIndex(played(played.size - 2))
+      val third = keyboard.noteToIndex(played(played.size - 3))
 
-      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.toIndex(played.last)
+      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.noteToIndex(played.last)
       val p2Row = p2(p2RowIndex)
 
       val p3RowIndex = third * keyboard.numKeys() * keyboard.numKeys() + p2RowIndex
@@ -54,14 +54,14 @@ class P3NotePicker(val keyboard: Keyboard,
         case (p, j) => p1Weight * p + p2Weight * p2Row(j) + (1 - (p1Weight + p2Weight)) * p3Row(j)
       }
 
-      keyboard.fromIndex(Tpm.getRandom(combined))
+      keyboard.indexToNote(Tpm.getRandom(combined))
     }
   }
 
   override def likeLastNote(played: Seq[Int]): Unit = {
-    val last = keyboard.toIndex(played.last)
-    val second = keyboard.toIndex(played(played.size - 2))
-    val third = keyboard.toIndex(played(played.size - 3))
+    val last = keyboard.noteToIndex(played.last)
+    val second = keyboard.noteToIndex(played(played.size - 2))
+    val third = keyboard.noteToIndex(played(played.size - 3))
 
     val f = (v: Double) => (1 - v) * factor
     val p1RowIndex = second
@@ -76,9 +76,9 @@ class P3NotePicker(val keyboard: Keyboard,
   }
 
   override def dislikeLastNote(played: Seq[Int]): Unit = {
-    val last = keyboard.toIndex(played.last)
-    val second = keyboard.toIndex(played(played.size - 2))
-    val third = keyboard.toIndex(played(played.size - 3))
+    val last = keyboard.noteToIndex(played.last)
+    val second = keyboard.noteToIndex(played(played.size - 2))
+    val third = keyboard.noteToIndex(played(played.size - 3))
 
     val f = (v: Double) => (1 - v) * factor
     val p1RowIndex = second

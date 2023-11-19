@@ -16,14 +16,14 @@ class P1NotePicker(val keyboard: Keyboard,
 
   override def seedNotes(): Seq[Int] = {
     val randomColumn = Random.nextInt(keyboard.numKeys())
-    val firstNote = keyboard.fromIndex(randomColumn)
+    val firstNote = keyboard.indexToNote(randomColumn)
     val secondNote = pickNextNote(Seq(firstNote))
 
     Seq(firstNote, secondNote)
   }
 
   override def pickNextNote(played: Seq[Int]): Int = {
-    val row = P(keyboard.toIndex(played.last))
+    val row = P(keyboard.noteToIndex(played.last))
     Tpm.getRandom(row)
   }
 
@@ -37,8 +37,8 @@ class P1NotePicker(val keyboard: Keyboard,
     persistence.write(P)
   }
 
-  private def penultimate(played: Seq[Int]): Int = keyboard.toIndex(played(played.length - 2))
-  private def last(played: Seq[Int]): Int = keyboard.toIndex(played.last)
+  private def penultimate(played: Seq[Int]): Int = keyboard.noteToIndex(played(played.length - 2))
+  private def last(played: Seq[Int]): Int = keyboard.indexToNote(played.last)
 }
 
 trait Markov1Feedback {

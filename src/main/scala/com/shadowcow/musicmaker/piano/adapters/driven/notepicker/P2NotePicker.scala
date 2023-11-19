@@ -17,7 +17,7 @@ class P2NotePicker(val keyboard: Keyboard,
 
   override def seedNotes(): Seq[Int] = {
     val randomColumn = Random.nextInt(keyboard.numKeys())
-    val firstNote = keyboard.fromIndex(randomColumn)
+    val firstNote = keyboard.indexToNote(randomColumn)
     val secondNote = pickNextNote(Seq(firstNote))
     val thirdNote = pickNextNote(Seq(firstNote, secondNote))
 
@@ -25,25 +25,25 @@ class P2NotePicker(val keyboard: Keyboard,
   }
 
   override def pickNextNote(played: Seq[Int]): Int = {
-    val p1Row = p1(keyboard.toIndex(played.last))
+    val p1Row = p1(keyboard.noteToIndex(played.last))
     if (played.size < 2) {
-      keyboard.fromIndex(Tpm.getRandom(p1Row))
+      keyboard.indexToNote(Tpm.getRandom(p1Row))
     } else {
-      val penultimate = keyboard.toIndex(played(played.size - 2))
+      val penultimate = keyboard.noteToIndex(played(played.size - 2))
 
-      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.toIndex(played.last)
+      val p2RowIndex = penultimate * keyboard.numKeys() + keyboard.noteToIndex(played.last)
       val p2Row = p2(p2RowIndex)
       val combined = p1Row.zip(p2Row).map {
         case (a,b) => p1Weight * a + (1 - p1Weight) * b
       }
 
-      keyboard.fromIndex(Tpm.getRandom(combined))
+      keyboard.indexToNote(Tpm.getRandom(combined))
     }
   }
 
   override def likeLastNote(played: Seq[Int]): Unit = {
-    val last = keyboard.toIndex(played.last)
-    val penultimate = keyboard.toIndex(played(played.size - 2))
+    val last = keyboard.noteToIndex(played.last)
+    val penultimate = keyboard.noteToIndex(played(played.size - 2))
 
     val f = (1 - p1(penultimate)(last)) * factor
     p1(penultimate)(last) *= (1 + f)
@@ -62,8 +62,8 @@ class P2NotePicker(val keyboard: Keyboard,
   }
 
   override def dislikeLastNote(played: Seq[Int]): Unit = {
-    val last = keyboard.toIndex(played.last)
-    val penultimate = keyboard.toIndex(played(played.size - 2))
+    val last = keyboard.noteToIndex(played.last)
+    val penultimate = keyboard.noteToIndex(played(played.size - 2))
 
     val f = (1 - p1(penultimate)(last)) * factor
     p1(penultimate)(last) *= (1 - f)

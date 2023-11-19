@@ -2,49 +2,75 @@ package com.shadowcow.musicmaker.piano.domain.model
 
 import scala.util.Random
 
+trait Keyboard {
+  def numKeys(): Int
+  def noteToIndex(note: Int): Int
+  def indexToNote(index: Int): Int
+  def randomNote(): Int = {
+    val randomKeyIndex = Random.nextInt(numKeys())
+
+    indexToNote(randomKeyIndex)
+  }
+}
+
 /**
+ * A keyboard that uses both white and black keys.
  *
- *
- *
- * @param firstNote
- * @param lastNote
+ * @param firstNote First note, 0 to 87 inclusive
+ * @param lastNote Last note, 0 to 87 inclusive
  */
-class Keyboard(val firstNote: Int, val lastNote: Int) {
+class WhiteAndBlackKeyboard(val firstNote: Int, val lastNote: Int) extends Keyboard {
   require(firstNote > -1 && firstNote < 88, s"firstNote must be in range [0, 87], got $firstNote")
   require(lastNote > -1 && lastNote < 88, s"lastNote must be in range [0, 87], got $lastNote")
   require(firstNote <= lastNote, s"firstNote must be < lastNote, got $firstNote, $lastNote")
 
   def numKeys(): Int = 1 + lastNote - firstNote
 
-  def toIndex(note: Int): Int = note - firstNote
-  def fromIndex(index: Int): Int = {
+  def noteToIndex(note: Int): Int = note - firstNote
+  def indexToNote(index: Int): Int = {
     val note = index + firstNote
     require(note >= firstNote && note <= lastNote, s"note must be in range [$firstNote, $lastNote], got $note")
     note
   }
+}
 
-  def randomNote(): Int = {
-    val randomKeyIndex = Random.nextInt(numKeys())
+/**
+ * A keyboard that uses only white keys.
+ *
+ * @param firstNote First note, 0 to 87 inclusive, must be a white key.
+ * @param lastNote Last note, 0 to 87 inclusive, must be a white key.
+ */
+class WhiteOnlyKeyboard(val firstNote: Int, val lastNote: Int) extends Keyboard {
+  require(firstNote > -1 && firstNote < 88, s"firstNote must be in range [0, 87], got $firstNote")
+  require(lastNote > -1 && lastNote < 88, s"lastNote must be in range [0, 87], got $lastNote")
+  require(firstNote <= lastNote, s"firstNote must be < lastNote, got $firstNote, $lastNote")
+  require(
+    !Keyboard.blackKeys.contains(firstNote) && !Keyboard.blackKeys.contains(lastNote),
+    s"notes must be white keys, got $firstNote, $lastNote"
+  )
 
-    fromIndex(randomKeyIndex)
-  }
+  val keys = Keyboard.whiteKeys.filter(k => k >= firstNote && k <= lastNote)
+
+  def numKeys(): Int = keys.size
+
+  override def noteToIndex(note: Int): Int = keys.indexOf(note)
+
+  override def indexToNote(index: Int): Int = keys(index)
 }
 
 object Keyboard {
-  val middleC = 39
+  val c3 = 27
+  val c4 = 39
+  val c5 = 51
 
-  val Full = new Keyboard(0, 87)
+  val blackKeys: Seq[Int] = Seq(
 
-  /**
-   * It seems like we could work with just the range 19 to 59
-   * to produce useful music.
-   *
-   * We could perhaps also shift which notes we are working with
-   * based on the ambiance we want. If we want dark and foreboding,
-   * we could shift the range lower.
-   *
-   * If we want... whatever is at the high range, we could
-   * shift that way.
-   */
-  val Small = new Keyboard(19, 59)
+  )
+  val whiteKeys: Seq[Int] = (0 until 88).filter(k => !blackKeys.contains(k))
+
+  val Full = new WhiteAndBlackKeyboard(0, 87)
+
+  val Small = new WhiteAndBlackKeyboard(19, 59)
+
+  val WhiteC3C5 = new WhiteOnlyKeyboard(c3, c5)
 }
